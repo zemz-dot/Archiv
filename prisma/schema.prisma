@@ -1,0 +1,185 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  // Preview feature for PostGIS proximity/location queries is possible via raw queries
+  // but standard relational schema handles the majority of the transactional integrity.
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// Core Entities
+// -----------------------------------------------------------------------------
+
+model User {
+  id                  String   @id @default(uuid())
+  email               String   @unique
+  passwordHash        String
+  firstName           String
+  lastName            String
+  verificationStatus  VerificationStatus @default(UNVERIFIED)
+  
+  // Geospatial fallback (for local browsing)
+  latitude            Float?
+  longitude           Float?
+  
+  aggregateRating     Float?   @default(0.0)
+  totalRentals        Int      @default(0)
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Relations
+  listings            Listing[] @relation("UserListings")
+  bookingsAsRenter    Booking[] @relation("RenterBookings")
+  messagesSent        Message[] @relation("MessagesSent")
+  messagesReceived    Message[] @relation("MessagesReceived")
+  conversations       Conversation[] @relation("UserConversations")
+  reviewsGiven        Review[]  @relation("ReviewsGiven")
+  reviewsReceived     Review[]  @relation("ReviewsReceived")
+}
+
+model Listing {
+  id                String   @id @default(uuid())
+  lenderId          String
+  lender            User     @relation("UserListings", fields: [lenderId], references: [id])
+  
+  brand             String
+  category          String
+  size              String
+  dailyRentalPrice  Decimal  @db.Decimal(10, 2)
+  retailPrice       Decimal? @db.Decimal(10, 2) // RRP
+  description       String   @db.Text
+  imageUrls         String[]
+  
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Single-SKU Availability & Constraints
+  blockedDates      BlockedDate[]
+  bookings          Booking[]
+}
+
+// -----------------------------------------------------------------------------
+// Calendar & Availability (Concurrency Prevention)
+// -----------------------------------------------------------------------------
+
+model BlockedDate {
+  id          String   @id @default(uuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id])
+  
+  date        DateTime @db.Date // Specific blocked date
+  reason      BlockReason @default(MANUAL) // Could be BOOKED or MANUAL_HOLD
+  bookingId   String?  // Optional link if blocked by a specific booking
+
+  @@unique([listingId, date]) // A listing can only be blocked once per specific date
+  @@index([listingId])
+}
+
+// -----------------------------------------------------------------------------
+// Transactions & Escrow
+// -----------------------------------------------------------------------------
+
+model Booking {
+  id          String   @id @default(uuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id])
+  
+  renterId    String
+  renter      User     @relation("RenterBookings", fields: [renterId], references: [id])
+  
+  startDate   DateTime @db.Date
+  endDate     DateTime @db.Date
+  totalPrice  Decimal  @db.Decimal(10, 2)
+  
+  status      BookingStatus @default(PENDING)
+  stripeIntentId String? @unique // Links to the Stripe PaymentIntent for escrow tracking
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  messages    Message[]
+  reviews     Review[]
+}
+
+// -----------------------------------------------------------------------------
+// Communication & Trust
+// -----------------------------------------------------------------------------
+
+model Conversation {
+  id          String   @id @default(uuid())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  participants User[]    @relation("UserConversations")
+  messages     Message[]
+}
+
+model Message {
+  id          String   @id @default(uuid())
+  
+  // Optional link to a booking
+  bookingId   String?
+  booking     Booking? @relation(fields: [bookingId], references: [id])
+  
+  // Link to a conversation (for Instagram-style chat)
+  conversationId String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  
+  senderId    String
+  sender      User     @relation("MessagesSent", fields: [senderId], references: [id])
+  
+  receiverId  String
+  receiver    User     @relation("MessagesReceived", fields: [receiverId], references: [id])
+  
+  content     String   @db.Text
+  timestamp   DateTime @default(now())
+  isRead      Boolean  @default(false)
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  bookingId   String
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  
+  reviewerId  String
+  reviewer    User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  
+  revieweeId  String
+  reviewee    User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
+  
+  rating      Int      // 1 to 5
+  comment     String?  @db.Text
+  createdAt   DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum VerificationStatus {
+  UNVERIFIED
+  ID_VERIFIED
+  FULLY_VERIFIED
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  DECLINED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum BlockReason {
+  BOOKED
+  MANUAL
+}

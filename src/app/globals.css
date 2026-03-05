@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --font-inter: 'Inter', sans-serif;
+    --font-playfair: 'Playfair Display', serif;
+}
+
+body {
+    @apply bg-white text-black antialiased overflow-x-hidden;
+    font-family: var(--font-inter);
+}
+
+h1,
+h2,
+h3,
+h4,
+.serif-font {
+    font-family: var(--font-playfair);
+}
+
+.brilliant-rose-cta {
+    @apply bg-brilliant-rose text-white hover:bg-opacity-90 transition-all duration-300 transform hover:-translate-y-0.5;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
