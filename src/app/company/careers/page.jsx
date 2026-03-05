@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, CheckCircle2, Globe, Heart, Smartphone, Briefcase, Zap, Star } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Globe, Heart, Smartphone, Briefcase, Zap, Star } from 'lucide-react';
 import { Navbar, Footer, AppPopup, AnnouncementBar } from '../../../components/layout/SharedComponents';
 
 export default function CareersPage() {
