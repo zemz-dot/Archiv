@@ -44,6 +44,7 @@ export default function SignInPage() {
                 avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(emailHandle)}&background=E8115B&color=fff&bold=true&size=200`,
                 followers: 0,
                 following: 0,
+                verificationStatus: 'UNVERIFIED',
             };
         }
         localStorage.setItem('archiv-user', JSON.stringify(userData));

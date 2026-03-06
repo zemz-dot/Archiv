@@ -29,6 +29,7 @@ function buildProfileFromUser(userData) {
         reliability: '100%',
         followers: userData.followers || 0,
         following: userData.following || 0,
+        verificationStatus: userData.verificationStatus || 'UNVERIFIED',
         items: [],
         reviewsData: [],
         highlights: []
@@ -108,6 +109,38 @@ export default function LenderProfile() {
             avatar: currentLender.avatar
         });
     }, [handle]);
+
+    useEffect(() => {
+        if (!loggedInUser || !lender.handle) return;
+        const following = JSON.parse(localStorage.getItem(`following-${loggedInUser.handle}`) || '[]');
+        setIsFollowing(following.includes(lender.handle));
+    }, [loggedInUser, lender.handle]);
+
+    const toggleFollow = () => {
+        if (!loggedInUser) {
+            router.push('/auth/sign-in');
+            return;
+        }
+        const storageKey = `following-${loggedInUser.handle}`;
+        let following = JSON.parse(localStorage.getItem(storageKey) || '[]');
+
+        if (isFollowing) {
+            following = following.filter(h => h !== lender.handle);
+            setIsFollowing(false);
+            // Also update following count in currentUser
+            const updatedUser = { ...loggedInUser, following: Math.max(0, (loggedInUser.following || 0) - 1) };
+            setLoggedInUser(updatedUser);
+            localStorage.setItem('archiv-user', JSON.stringify(updatedUser));
+        } else {
+            following.push(lender.handle);
+            setIsFollowing(true);
+            const updatedUser = { ...loggedInUser, following: (loggedInUser.following || 0) + 1 };
+            setLoggedInUser(updatedUser);
+            localStorage.setItem('archiv-user', JSON.stringify(updatedUser));
+        }
+        localStorage.setItem(storageKey, JSON.stringify(following));
+        showToast(isFollowing ? 'Unfollowed lender' : 'Following lender');
+    };
 
     const isOwnProfile = loggedInUser?.handle === lender.handle;
 
@@ -265,8 +298,41 @@ export default function LenderProfile() {
                             <div className="flex flex-wrap justify-center md:justify-start items-center gap-4 mb-6">
                                 <span className="text-brilliant-rose font-black text-xs uppercase tracking-widest">{lender.handle}</span>
                                 <span className="flex items-center gap-1 text-xs font-bold text-gray-400 capitalize"><MapPin size={12} /> {lender.location}</span>
-                                <span className="px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1"><ShieldCheck size={12} /> Verified Lender</span>
+                                {lender.verificationStatus === 'ID_VERIFIED' && (
+                                    <span className="px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black uppercase tracking-widest rounded-full flex items-center gap-1"><ShieldCheck size={12} /> Verified Lender</span>
+                                )}
                             </div>
+
+                            {/* Instagram Style Stats Row */}
+                            <div className="flex items-center justify-between md:justify-start md:gap-12 py-6 border-y border-gray-100/50 mb-8 px-2 md:px-0">
+                                <div className="flex flex-col items-center md:items-start group cursor-default">
+                                    <span className="text-lg md:text-xl font-black tracking-tight group-hover:text-brilliant-rose transition-colors">{lender.reviews || 0}</span>
+                                    <span className="text-[10px] md:text-[11px] font-medium text-gray-400 lowercase tracking-tight">reviews</span>
+                                </div>
+                                <div className="flex flex-col items-center md:items-start group cursor-default">
+                                    <span className="text-lg md:text-xl font-black tracking-tight group-hover:text-brilliant-rose transition-colors">
+                                        {isFollowing && !isOwnProfile ? (lender.followers || 0) + 1 : (lender.followers || 0)}
+                                    </span>
+                                    <span className="text-[10px] md:text-[11px] font-medium text-gray-400 lowercase tracking-tight">followers</span>
+                                </div>
+                                <div className="flex flex-col items-center md:items-start group cursor-default">
+                                    <span className="text-lg md:text-xl font-black tracking-tight group-hover:text-brilliant-rose transition-colors">{lender.following || 0}</span>
+                                    <span className="text-[10px] md:text-[11px] font-medium text-gray-400 lowercase tracking-tight">following</span>
+                                </div>
+                                <div className="hidden sm:flex flex-col items-center md:items-start group cursor-default">
+                                    <span className="text-lg md:text-xl font-black tracking-tight group-hover:text-brilliant-rose transition-colors">{lender.rentals || 0}</span>
+                                    <span className="text-[10px] md:text-[11px] font-medium text-gray-400 lowercase tracking-tight">rentals</span>
+                                </div>
+                                <div className="hidden sm:flex flex-col items-center md:items-start group cursor-default">
+                                    <span className="text-lg md:text-xl font-black tracking-tight group-hover:text-brilliant-rose transition-colors">{lender.reliability || '100%'}</span>
+                                    <span className="text-[10px] md:text-[11px] font-medium text-gray-400 lowercase tracking-tight">reliability</span>
+                                </div>
+                                <div className="hidden md:flex flex-col items-center md:items-start group cursor-default">
+                                    <span className="text-lg md:text-xl font-black tracking-tight text-brilliant-rose">Top 1%</span>
+                                    <span className="text-[10px] md:text-[11px] font-medium text-gray-400 lowercase tracking-tight">rank</span>
+                                </div>
+                            </div>
+
                             <p className="text-gray-600 font-medium text-lg leading-relaxed max-w-2xl mb-8">
                                 "{lender.bio}"
                             </p>
@@ -365,37 +431,7 @@ export default function LenderProfile() {
                 </div>
             </header>
 
-            {/* Stats Bar */}
-            <div className="border-y border-gray-100 bg-white">
-                <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 divide-x divide-gray-50 lg:divide-x">
-                    <div className="py-8 px-6 text-center">
-                        <div className="text-2xl font-serif italic mb-1">{lender.rating} ★</div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{lender.reviews} Reviews</div>
-                    </div>
-                    <div className="py-8 px-6 text-center">
-                        <div className="text-2xl font-serif italic mb-1">
-                            {isFollowing && !isOwnProfile ? (lender.followers || 0) + 1 : (lender.followers || 0)}
-                        </div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Followers</div>
-                    </div>
-                    <div className="py-8 px-6 text-center">
-                        <div className="text-2xl font-serif italic mb-1">{lender.following || 0}</div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Following</div>
-                    </div>
-                    <div className="py-8 px-6 text-center">
-                        <div className="text-2xl font-serif italic mb-1">{lender.rentals}</div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Rentals</div>
-                    </div>
-                    <div className="py-8 px-6 text-center border-t border-gray-50 md:border-t-0">
-                        <div className="text-2xl font-serif italic mb-1">{lender.reliability}</div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Reliability Score</div>
-                    </div>
-                    <div className="py-8 px-6 text-center border-t border-gray-50 lg:border-t-0">
-                        <div className="text-2xl font-serif italic mb-1">Top 1%</div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Community Rank</div>
-                    </div>
-                </div>
-            </div>
+
 
             {/* === EARNINGS DASHBOARD (Own Profile Only) === */}
             {isOwnProfile && (

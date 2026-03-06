@@ -18,6 +18,8 @@ export const metadata = {
     description: 'Rent designer fashion for a fraction of the retail price. Peer-to-peer circular fashion platform.',
 };
 
+import { Providers } from '@/components/Providers';
+
 export default function RootLayout({ children }) {
     return (
         <html lang="en" className={`${inter.variable} ${playfair.variable}`}>
@@ -25,7 +27,9 @@ export default function RootLayout({ children }) {
                 <link rel="icon" href="/favicon.ico" />
             </head>
             <body className="bg-white antialiased selection:bg-brilliant-rose selection:text-white">
-                {children}
+                <Providers>
+                    {children}
+                </Providers>
             </body>
         </html>
     );

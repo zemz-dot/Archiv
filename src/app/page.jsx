@@ -264,12 +264,58 @@ const PRODUCTS = [
 ];
 
 const TOP_LENDERS = [
-    { handle: '@sarahstyle', name: 'Sarah M.', rating: '5.0', rentals: 210, specialty: 'Designer Bags', avatar: 'https://i.pravatar.cc/150?u=1' },
-    { handle: '@archive_queen', name: 'Isabelle R.', rating: '4.9', rentals: 185, specialty: 'Evening Wear', avatar: 'https://i.pravatar.cc/150?u=b' },
-    { handle: '@minimalist_luxe', name: 'Priya K.', rating: '5.0', rentals: 310, specialty: 'Occasionwear', avatar: 'https://i.pravatar.cc/150?u=c' },
-    { handle: '@fashionlover', name: 'Emma T.', rating: '4.8', rentals: 142, specialty: 'Vintage Finds', avatar: 'https://i.pravatar.cc/150?u=a' },
-    { handle: '@luxe_closet', name: 'Amara D.', rating: '4.9', rentals: 98, specialty: 'Bridal & Formal', avatar: 'https://i.pravatar.cc/150?u=d' },
+    {
+        handle: '@sarahstyle',
+        name: 'Sarah M.',
+        rating: '5.0',
+        rentals: 210,
+        specialty: 'Designer Bags',
+        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=1200&auto=format&fit=crop',
+        topItems: ['/bag1.avif', '/bag2.avif', '/bag3.avif'],
+        joined: '2023'
+    },
+    {
+        handle: '@archive_queen',
+        name: 'Isabelle R.',
+        rating: '4.9',
+        rentals: 185,
+        specialty: 'Evening Wear',
+        avatar: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?q=80&w=1200&auto=format&fit=crop',
+        topItems: ['/1.avif', '/4.avif', '/6.avif'],
+        joined: '2022'
+    },
+    {
+        handle: '@minimalist_luxe',
+        name: 'Priya K.',
+        rating: '5.0',
+        rentals: 310,
+        specialty: 'Occasionwear',
+        avatar: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?q=80&w=1200&auto=format&fit=crop',
+        topItems: ['/2.avif', '/5.avif', '/bag2-1.avif'],
+        joined: '2021'
+    },
+    {
+        handle: '@fashionlover',
+        name: 'Emma T.',
+        rating: '4.8',
+        rentals: 142,
+        specialty: 'Vintage Finds',
+        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=1200&auto=format&fit=crop',
+        topItems: ['/shoes1.avif', '/Jacket1.avif', '/1.avif'],
+        joined: '2023'
+    },
+    {
+        handle: '@luxe_closet',
+        name: 'Amara D.',
+        rating: '4.9',
+        rentals: 98,
+        specialty: 'Bridal & Formal',
+        avatar: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=1200&auto=format&fit=crop',
+        topItems: ['/4.avif', '/bag1.avif', '/5.avif'],
+        joined: '2024'
+    },
 ];
+
 
 const DESIGNER_CARDS = [
     { name: 'Jacquemus', slug: 'jacquemus', img: 'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?q=80&w=800&auto=format&fit=crop', items: '340+', size: 'large', color: '#F7E7CE' },
@@ -565,6 +611,7 @@ export default function HighFidelityHome() {
     const [showCookiePopup, setShowCookiePopup] = useState(false);
     const [showSearch, setShowSearch] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('All Items');
+    const [activeCurator, setActiveCurator] = useState(0);
 
     // Parallax values for Section 03
     const { scrollYProgress } = useScroll();
@@ -650,7 +697,7 @@ export default function HighFidelityHome() {
             <section id="collections" className="pt-24 pb-12 px-6 lg:px-12 overflow-hidden scroll-mt-20">
                 <div className="flex justify-between items-end mb-12">
                     <div>
-                        <span className="text-[11px] font-black uppercase text-gray-300 tracking-[0.2em] mb-3 block italic">Section 01</span>
+                        <span className="text-[11px] font-black uppercase text-gray-300 tracking-[0.4em] mb-4 block italic">Protocol 01 // Categorization</span>
                         <h3 className="text-4xl font-serif text-black">Rent by Occasion</h3>
                     </div>
                     <div className="flex gap-4">
@@ -858,14 +905,17 @@ export default function HighFidelityHome() {
                 </div>
             </section>
 
-            {/* Refined Sustainability Section — Airy & Environmentally Validated */}
-            <section className="relative py-24 lg:py-40 bg-off-white overflow-hidden">
-                {/* Background Atmosphere — Softened and brightened */}
-                <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-brilliant-rose/10 rounded-full blur-[160px] translate-x-1/3 -translate-y-1/3 opacity-40" />
-                <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-sage/20 rounded-full blur-[140px] -translate-x-1/3 translate-y-1/3 opacity-30" />
+            {/* Refined Sustainability Section — High-Contrast Premium Dark Sage */}
+            <section className="relative py-24 lg:py-40 bg-charcoal overflow-hidden group/sustainability">
+                {/* Deep Atmospheric Glows */}
+                <div className="absolute top-0 right-0 w-[1200px] h-[1200px] bg-sage/10 rounded-full blur-[160px] translate-x-1/2 -translate-y-1/2 opacity-60" />
+                <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-sage/5 rounded-full blur-[140px] -translate-x-1/2 translate-y-1/2 opacity-40" />
 
-                {/* Grainy Texture Overlay — Subtle editorial touch */}
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-repeat" />
+                {/* Refined Grid Pattern — Subtle technical layer */}
+                <div
+                    className="absolute inset-0 opacity-[0.03] pointer-events-none"
+                    style={{ backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`, backgroundSize: '48px 48px' }}
+                />
 
                 <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-10">
                     <div className="grid lg:grid-cols-2 gap-24 items-center">
@@ -875,12 +925,12 @@ export default function HighFidelityHome() {
                             viewport={{ once: true }}
                             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
                         >
-                            <div className="inline-flex items-center gap-3 mb-12 py-2.5 px-6 rounded-full border border-charcoal/5 bg-white/50 backdrop-blur-md shadow-sm">
+                            <div className="inline-flex items-center gap-3 mb-12 py-2.5 px-6 rounded-full border border-white/10 bg-white/5 backdrop-blur-md shadow-2xl">
                                 <span className="relative flex h-3 w-3">
                                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-sage opacity-75"></span>
                                     <span className="relative inline-flex rounded-full h-3 w-3 bg-sage"></span>
                                 </span>
-                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-charcoal/60">Environmentally Validated</span>
+                                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">Protocol 02 // Circularity</span>
                             </div>
 
                             <motion.h2
@@ -888,123 +938,266 @@ export default function HighFidelityHome() {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.8, delay: 0.2 }}
-                                className="text-6xl lg:text-8xl font-serif text-charcoal leading-[0.85] mb-12"
+                                className="text-6xl lg:text-9xl font-serif text-white leading-[0.85] mb-12 tracking-tighter"
                             >
                                 Conscious <br />
-                                <span className="italic text-charcoal/20">Circulation.</span>
+                                <span className="italic text-sage/30">Circulation.</span>
                             </motion.h2>
 
-                            <blockquote className="text-charcoal/60 text-xl lg:text-3xl font-serif italic leading-relaxed mb-16 relative">
-                                <span className="absolute -top-10 -left-10 text-charcoal/5 text-[160px] font-serif select-none pointer-events-none">&ldquo;</span>
-                                &ldquo;By sharing our wardrobes, we are collectively extending the life of fashion and reducing our carbon footprint. Every rotation is a vote for the planet.&rdquo;
+                            <blockquote className="text-white/60 text-xl lg:text-3xl font-serif italic leading-relaxed mb-16 relative">
+                                <span className="absolute -top-14 -left-14 text-sage/5 text-[220px] font-serif select-none pointer-events-none">&ldquo;</span>
+                                &ldquo;Our mission is to prove that luxury and circularity are not just compatible, but essential partners in the future of fashion. Every rotation is a vote for the planet.&rdquo;
                             </blockquote>
 
                             <div className="flex items-center gap-6">
                                 <div className="relative">
-                                    <div className="w-16 h-16 rounded-full overflow-hidden ring-4 ring-white shadow-lg">
-                                        <img src="/Foued.jpg" className="w-full h-full object-cover" alt="Foued Mensi" />
+                                    <div className="w-16 h-16 rounded-full overflow-hidden ring-4 ring-white/10 shadow-2xl">
+                                        <img src="/Foued.jpg" className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700" alt="Foued Mensi" />
                                     </div>
-                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-sage rounded-full border-4 border-off-white flex items-center justify-center shadow-sm">
-                                        <CheckCircle2 size={10} className="text-white" />
+                                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-sage rounded-full border-4 border-charcoal flex items-center justify-center shadow-sm">
+                                        <CheckCircle2 size={10} className="text-charcoal" />
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-charcoal font-black text-sm uppercase tracking-widest">Foued Mensi</div>
-                                    <div className="text-charcoal/30 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Founder & CEO // Archiv</div>
+                                    <div className="text-white font-black text-sm uppercase tracking-widest">Foued Mensi</div>
+                                    <div className="text-white/30 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Founder & CEO // ARCHIV Protcol</div>
                                 </div>
                             </div>
                         </motion.div>
 
                         <div className="relative">
-                            <div className="grid grid-cols-2 gap-6">
+                            <div className="grid grid-cols-2 gap-6 md:gap-8">
                                 {[
-                                    { val: '6.4 tons', label: 'Carbon Offset', color: 'brilliant-rose' },
-                                    { val: '120k+', label: 'Items Saved', color: 'sage' },
-                                    { val: '98%', label: 'Loop Efficiency', color: 'charcoal' },
-                                    { val: '2026', label: 'Net Zero Target', color: 'brilliant-rose' }
+                                    { val: '6.4 tons', label: 'Carbon Offset', icon: Globe },
+                                    { val: '120k+', label: 'Items Saved', icon: Heart },
+                                    { val: '98%', label: 'Loop Efficiency', icon: CheckCircle2 },
+                                    { val: '2026', label: 'Net Zero Goal', icon: ArrowRight }
                                 ].map((stat, i) => (
                                     <motion.div
                                         key={stat.label}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        whileInView={{ opacity: 1, y: 0 }}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        whileInView={{ opacity: 1, scale: 1 }}
                                         viewport={{ once: true }}
-                                        transition={{ duration: 0.8, delay: 0.2 * i }}
-                                        className="bg-white/60 border border-white backdrop-blur-3xl rounded-[2.5rem] p-10 group hover:bg-white transition-all duration-500 shadow-sm hover:shadow-xl hover:shadow-charcoal/[0.02]"
+                                        transition={{ duration: 0.6, delay: 0.1 * i }}
+                                        className="bg-white/5 border border-white/10 backdrop-blur-3xl rounded-[2.5rem] p-10 group/card hover:bg-white/10 transition-all duration-700 hover:-translate-y-2"
                                     >
-                                        <div className={cn("text-3xl font-serif italic font-black mb-3", i % 2 === 0 ? "text-brilliant-rose" : "text-sage")}>{stat.val}</div>
-                                        <div className="text-charcoal/30 text-[10px] font-black uppercase tracking-[0.3em]">{stat.label}</div>
-                                        <div className="mt-6 h-[1.5px] w-0 group-hover:w-full bg-charcoal/10 transition-all duration-700" />
+                                        <div className="flex justify-between items-start mb-6">
+                                            <div className="text-3xl font-serif italic font-black text-sage group-hover/card:text-white transition-colors duration-500">
+                                                {stat.val}
+                                            </div>
+                                            <stat.icon size={16} className="text-white/20 group-hover/card:text-sage transition-colors duration-500" />
+                                        </div>
+                                        <div className="text-white/30 text-[10px] font-black uppercase tracking-[0.3em] group-hover/card:text-white/50 transition-colors">
+                                            {stat.label}
+                                        </div>
+                                        <div className="mt-8 h-[1px] w-full bg-gradient-to-r from-sage/20 to-transparent group-hover/card:from-sage transition-all duration-700" />
                                     </motion.div>
                                 ))}
                             </div>
 
-                            {/* Center Accent — Softer blur */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-sage/5 rounded-full blur-[80px] pointer-events-none" />
+                            {/* Center Ambient Glow */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-sage/10 rounded-full blur-[100px] pointer-events-none" />
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* Reputation Section - Top Lenders */}
-            <section className="py-24 px-6 lg:px-12 bg-white">
-                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-14 gap-6">
-                    <div>
-                        <span className="text-gray-300 font-bold text-xs uppercase tracking-[0.3em] mb-3 block">Community Stars</span>
-                        <h3 className="text-4xl lg:text-5xl font-serif">Top <span className="italic">Lenders.</span></h3>
+            {/* Archive Icons — Premium Community Leaderboard */}
+            <section className="py-40 px-6 lg:px-12 bg-[#FAF9F6] relative overflow-hidden group/leaderboard">
+                {/* Background Textures */}
+                <div className="absolute top-0 right-0 w-[1000px] h-[1000px] bg-brilliant-rose/5 rounded-full blur-[140px] translate-x-1/2 -translate-y-1/2 opacity-60" />
+                <div className="absolute bottom-0 left-0 w-[800px] h-[800px] bg-sage/5 rounded-full blur-[120px] -translate-x-1/2 translate-y-1/2" />
+
+                <div className="max-w-7xl mx-auto relative z-10">
+                    {/* Header: More Direct Leaderboard Style */}
+                    <div className="flex flex-col lg:flex-row justify-between items-end mb-24 gap-12 border-b border-charcoal/5 pb-16">
+                        <div className="max-w-3xl">
+                            <motion.div
+                                initial={{ opacity: 0, scaleX: 0 }}
+                                whileInView={{ opacity: 1, scaleX: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 1 }}
+                                className="h-px w-24 bg-brilliant-rose mb-8 origin-left"
+                            />
+                            <h3 className="text-7xl lg:text-9xl font-serif tracking-tighter leading-[0.8] text-charcoal">
+                                Archive <br />
+                                <span className="italic text-charcoal/20">Leaderboard.</span>
+                            </h3>
+                        </div>
+                        <div className="max-w-sm lg:text-right">
+                            <p className="text-charcoal/40 text-[13px] font-black uppercase tracking-[0.4em] mb-4 italic">Community Choice // Protocol 05</p>
+                            <p className="text-gray-400 text-sm font-medium leading-relaxed font-serif italic mb-8">
+                                Meet the stewards of high-fidelity circularity. Rated by the community, authenticated by ARCHIV.
+                            </p>
+                            <Link href="/collections/all" className="inline-flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.5em] text-charcoal hover:text-brilliant-rose transition-all duration-500 group/link">
+                                View Full Rankings <ArrowRight size={14} className="group-hover/link:translate-x-2 transition-transform" />
+                            </Link>
+                        </div>
                     </div>
-                    <Link href="/collections/all" className="text-xs font-black uppercase tracking-widest border-b-2 border-black pb-1 hover:text-brilliant-rose hover:border-brilliant-rose transition-all">
-                        Browse All Lenders →
-                    </Link>
-                </div>
 
-                <div className="space-y-4">
-                    {TOP_LENDERS.map((lender, i) => (
-                        <Link
-                            key={lender.handle}
-                            href={`/lender/${lender.handle}`}
-                            className="group flex items-center gap-6 bg-off-white hover:bg-black rounded-2xl p-5 lg:p-6 transition-all duration-500 border border-transparent hover:border-black"
-                        >
-                            {/* Rank */}
-                            <div className="w-10 text-center flex-shrink-0">
-                                <span className={`text-lg font-serif italic font-black group-hover:text-white transition-colors ${i === 0 ? 'text-yellow-500' : i === 1 ? 'text-gray-400' : i === 2 ? 'text-amber-700' : 'text-gray-300'
-                                    }`}>#{i + 1}</span>
+                    {/* Leaderboard List — High-End Styled Table */}
+                    <div className="space-y-4">
+                        {/* Table Header (Hidden on Mobile) */}
+                        <div className="hidden lg:grid grid-cols-12 px-12 py-6 text-[10px] font-black uppercase tracking-[0.4em] text-charcoal/30">
+                            <div className="col-span-1">Rank</div>
+                            <div className="col-span-4">Curator // Icon</div>
+                            <div className="col-span-2 text-center">Specialty</div>
+                            <div className="col-span-2 text-center">Archive Size</div>
+                            <div className="col-span-2 text-center">Market Trust</div>
+                            <div className="col-span-1 text-right">View</div>
+                        </div>
+
+                        {/* Leaderboard Rows */}
+                        {TOP_LENDERS.map((lender, i) => (
+                            <motion.div
+                                key={lender.handle}
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.8, delay: i * 0.1, ease: [0.16, 1, 0.3, 1] }}
+                            >
+                                <Link
+                                    href={`/lender/${lender.handle.replace('@', '')}`}
+                                    className={cn(
+                                        "group block relative bg-white/40 border border-charcoal/5 backdrop-blur-sm rounded-[2rem] lg:rounded-full overflow-hidden transition-all duration-700 hover:bg-white hover:shadow-2xl hover:shadow-charcoal/5 hover:-translate-y-1",
+                                        i === 0 ? "border-brilliant-rose/20 bg-white/80" : ""
+                                    )}
+                                >
+                                    <div className="grid grid-cols-1 lg:grid-cols-12 items-center px-8 lg:px-12 py-6 lg:py-4 gap-6 lg:gap-0">
+                                        {/* Rank Number */}
+                                        <div className="col-span-1 flex items-center justify-center lg:justify-start">
+                                            <span className={cn(
+                                                "text-4xl lg:text-5xl font-serif italic font-black leading-none",
+                                                i === 0 ? "text-brilliant-rose" : "text-charcoal/10 group-hover:text-charcoal transition-colors duration-500"
+                                            )}>
+                                                0{i + 1}
+                                            </span>
+                                        </div>
+
+                                        {/* Curator Info */}
+                                        <div className="col-span-1 lg:col-span-4 flex items-center gap-6 lg:gap-8 justify-center lg:justify-start">
+                                            <div className="relative flex-shrink-0">
+                                                <div className={cn(
+                                                    "w-16 h-16 lg:w-20 lg:h-20 rounded-full border-4 p-1 overflow-hidden transition-all duration-700",
+                                                    i === 0 ? "border-brilliant-rose" : "border-charcoal/5 group-hover:border-charcoal"
+                                                )}>
+                                                    <img
+                                                        src={lender.avatar}
+                                                        className="w-full h-full rounded-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                                                        alt={lender.name}
+                                                    />
+                                                </div>
+                                                {i === 0 && (
+                                                    <div className="absolute -bottom-1 -right-1 bg-brilliant-rose text-white p-1.5 rounded-full shadow-lg">
+                                                        <CheckCircle2 size={12} />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="text-center lg:text-left">
+                                                <h4 className="text-xl lg:text-2xl font-serif italic font-black text-charcoal group-hover:text-brilliant-rose transition-colors">{lender.name}</h4>
+                                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-300 mt-1 block">{lender.handle}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Specialty (Desktop) */}
+                                        <div className="hidden lg:flex col-span-2 justify-center">
+                                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{lender.specialty}</span>
+                                        </div>
+
+                                        {/* Archive Size / Rentals */}
+                                        <div className="col-span-1 lg:col-span-2 flex lg:flex-col items-center justify-between lg:justify-center gap-4 lg:gap-1 text-center border-t lg:border-t-0 border-charcoal/5 pt-6 lg:pt-0">
+                                            <span className="lg:hidden text-[9px] font-bold text-gray-300 uppercase tracking-widest">Archive Size</span>
+                                            <div className="text-2xl lg:text-3xl font-serif italic font-black text-charcoal">
+                                                {lender.rentals + (i * 24)}+
+                                            </div>
+                                            <span className="hidden lg:block text-[9px] font-black uppercase tracking-widest text-gray-300">Total Items Curated</span>
+                                        </div>
+
+                                        {/* Market Trust / Rating */}
+                                        <div className="col-span-1 lg:col-span-2 flex lg:flex-col items-center justify-between lg:justify-center gap-4 lg:gap-1 text-center">
+                                            <span className="lg:hidden text-[9px] font-bold text-gray-300 uppercase tracking-widest">Market Trust</span>
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-2xl lg:text-3xl font-serif italic font-black text-brilliant-rose">{lender.rating}</div>
+                                                <div className="flex gap-0.5">
+                                                    {[1, 2, 3, 4, 5].map(star => (
+                                                        <div key={star} className={cn(
+                                                            "w-1 h-3 lg:w-1.5 lg:h-5 rounded-full",
+                                                            star <= Math.floor(lender.rating) ? "bg-brilliant-rose" : "bg-charcoal/5"
+                                                        )} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <span className="hidden lg:block text-[9px] font-black uppercase tracking-widest text-gray-300">Community Score</span>
+                                        </div>
+
+                                        {/* Action Icon */}
+                                        <div className="col-span-1 flex justify-center lg:justify-end">
+                                            <div className="w-12 h-12 lg:w-14 lg:h-14 rounded-full border border-charcoal/5 flex items-center justify-center text-charcoal/20 group-hover:bg-charcoal group-hover:text-white group-hover:border-charcoal transition-all duration-500">
+                                                <ArrowRight size={22} className="-rotate-45 group-hover:rotate-0 transition-transform duration-500" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* Subtle Ambient Hover Bar */}
+                                    <div className="absolute bottom-0 left-0 h-1 w-0 bg-gradient-to-r from-brilliant-rose to-transparent transition-all duration-1000 group-hover:w-full" />
+                                </Link>
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    {/* Bottom CTA for the Leaderboard */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                        className="mt-24 pt-16 border-t border-charcoal/5 flex flex-col md:flex-row items-center justify-between gap-12"
+                    >
+                        <div className="flex items-center gap-8">
+                            <div className="flex -space-x-4">
+                                {TOP_LENDERS.slice(0, 3).map((l, i) => (
+                                    <div key={i} className="w-14 h-14 rounded-full border-4 border-white overflow-hidden shadow-lg shadow-black/5">
+                                        <img src={l.avatar} className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" alt="Curator" />
+                                    </div>
+                                ))}
                             </div>
-
-                            {/* Avatar */}
-                            <div className="relative flex-shrink-0">
-                                <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-white group-hover:ring-brilliant-rose transition-all">
-                                    <img src={lender.avatar} className="w-full h-full object-cover" alt={lender.name} />
-                                </div>
-                                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-400 border-2 border-white rounded-full" />
+                            <div>
+                                <div className="text-lg font-serif italic font-black text-charcoal tracking-tight leading-none mb-1">Join 12,432 curators.</div>
+                                <div className="text-[10px] font-black uppercase tracking-widest text-gray-300">Monetize your archive starting today.</div>
                             </div>
-
-                            {/* Info */}
-                            <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-3">
-                                    <span className="font-black text-sm group-hover:text-white transition-colors">{lender.name}</span>
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-brilliant-rose bg-brilliant-rose/10 px-2 py-0.5 rounded-full">Certified</span>
-                                </div>
-                                <div className="text-[11px] text-gray-400 group-hover:text-white/50 font-medium mt-0.5 transition-colors">{lender.handle} · {lender.specialty}</div>
-                            </div>
-
-                            {/* Stats */}
-                            <div className="hidden md:flex items-center gap-8 flex-shrink-0">
-                                <div className="text-right">
-                                    <div className="text-sm font-black group-hover:text-white transition-colors">{lender.rentals}</div>
-                                    <div className="text-[9px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-white/40 transition-colors">Rentals</div>
-                                </div>
-                                <div className="text-right">
-                                    <div className="text-sm font-black text-yellow-500">{lender.rating} ★</div>
-                                    <div className="text-[9px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-white/40 transition-colors">Rating</div>
-                                </div>
-                            </div>
-
-                            {/* Arrow */}
-                            <ArrowRight size={18} className="flex-shrink-0 text-gray-300 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                        </div>
+                        <Link href="/lend" className="h-16 px-12 bg-charcoal text-white rounded-full text-[10px] font-black uppercase tracking-[0.4em] flex items-center justify-center hover:bg-brilliant-rose transition-all duration-500 shadow-2xl">
+                            Start Lending Your Closet
                         </Link>
-                    ))}
+                    </motion.div>
                 </div>
+
+                {/* Vertical Decorative Marquee — Softer for the Leaderboard */}
+                <div className="absolute right-0 top-1/2 -translate-y-1/2 h-full overflow-hidden pointer-events-none select-none opacity-5 hidden xl:block">
+                    <motion.div
+                        initial={{ y: 0 }}
+                        animate={{ y: '-50%' }}
+                        transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+                        className="text-[12rem] font-black uppercase tracking-tighter vertical-text whitespace-nowrap leading-none py-10"
+                    >
+                        THE ARCHIV INDEX • CURATED PROTOCOLS • GLOBAL RANKINGS • THE ARCHIV INDEX • CURATED PROTOCOLS •
+                    </motion.div>
+                </div>
+
+                <style jsx>{`
+                    .vertical-text {
+                        writing-mode: vertical-rl;
+                        transform: rotate(180deg);
+                    }
+                `}</style>
             </section>
+
+
+
+
+
+
+
+
 
             {/* Dashboard CTA */}
             <DashboardCTA />

@@ -1,9 +1,10 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, TrendingUp, Package, Clock, Wallet, ArrowUpRight, Star, ShieldCheck, BarChart2, Download, Bell, X, ChevronRight, ChevronDown, CheckCircle2, AlertCircle, Plus, Edit2, ToggleLeft, ToggleRight, MessageCircle, RefreshCw, Target, Award, Zap, Calendar, Users, DollarSign, PieChart, Settings, HelpCircle, LogOut, Home, Tag, CreditCard, Check, Trash2, ChevronLeft, Search, Menu, Send, AlertTriangle, Filter, Moon, Sun, PanelLeftClose, PanelLeftOpen, MapPin, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ArrowRight, TrendingUp, Package, Clock, Wallet, ArrowUpRight, Star, ShieldCheck, BarChart2, Download, Bell, X, ChevronRight, ChevronDown, CheckCircle2, AlertCircle, Plus, Edit2, ToggleLeft, ToggleRight, MessageCircle, RefreshCw, Target, Award, Zap, Calendar, Users, DollarSign, PieChart, Settings, HelpCircle, LogOut, Home, Tag, CreditCard, Check, Trash2, ChevronLeft, Search, Menu, Send, AlertTriangle, Filter, Moon, Sun, PanelLeftClose, PanelLeftOpen, MapPin, ExternalLink, Lock, ShoppingBag } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -54,11 +55,7 @@ const PAYOUTS = [
     { date: '1 Dec 2025', gross: 1489, fee: 149, net: 1340, ref: 'PAY-2025-12' },
 ];
 
-const REVIEWS = [
-    { id: 1, user: 'Elena G.', avatar: 'https://i.pravatar.cc/150?u=12', rating: 5, item: 'Leather Coat', comment: 'Pristine condition. Foued is the best lender on the platform!', date: '4 Mar 2026' },
-    { id: 2, user: 'Marcus T.', avatar: 'https://i.pravatar.cc/150?u=13', rating: 5, item: 'Archive Bag', comment: 'Arrived on time, beautifully packaged. Will rent again.', date: '2 Mar 2026' },
-    { id: 3, user: 'Sophie L.', avatar: 'https://i.pravatar.cc/150?u=14', rating: 4, item: 'Archive Jacket', comment: 'Loved the jacket, great communication from the lender.', date: '28 Feb 2026' },
-];
+const REVIEWS = [];
 
 const ACTIVITY = [
     { id: 1, type: 'booking', text: 'New booking request from @alexk for Leather Coat', time: '2h ago', icon: '📦' },
@@ -88,19 +85,22 @@ const INIT_NOTIFS = [
 
 const NAV = [
     { id: 'overview', label: 'Overview', icon: Home },
+    { id: 'orders', label: 'My Orders', icon: ShoppingBag },
+    { id: 'bookings', label: 'Lending', icon: Calendar },
     { id: 'analytics', label: 'Analytics', icon: BarChart2 },
-    { id: 'bookings', label: 'Bookings', icon: Calendar },
-    { id: 'items', label: 'My Items', icon: Package },
+    { id: 'items', label: 'Inventory', icon: Package },
     { id: 'financials', label: 'Financials', icon: DollarSign },
     { id: 'reputation', label: 'Reputation', icon: Star },
     { id: 'activity', label: 'Activity', icon: Bell },
-    { id: 'goals', label: 'Goals', icon: Target },
-    { id: 'faq', label: 'FAQ & Help', icon: HelpCircle },
+    { id: 'faq', label: 'Support', icon: HelpCircle },
     { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
 // ── Component ──────────────────────────────────────────────────────────────
+
+
 export default function Dashboard() {
+    const { data: session } = useSession();
     const router = useRouter();
     const [user, setUser] = useState(null);
     const [tab, setTab] = useState('overview');
@@ -133,9 +133,16 @@ export default function Dashboard() {
     const [reviewReplies, setReviewReplies] = useState({});
     const [replyingTo, setReplyingTo] = useState(null);
     const [replyText, setReplyText] = useState('');
+    const [orders, setOrders] = useState([]);
+    const [reviews, setReviews] = useState([]);
+    const [showReviewModal, setShowReviewModal] = useState(null);
+    const [reviewRating, setReviewRating] = useState(5);
+    const [reviewComment, setReviewComment] = useState('');
     const [showDamageModal, setShowDamageModal] = useState(null);
     const [damageNote, setDamageNote] = useState('');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
+    const [selectedListingId, setSelectedListingId] = useState(null);
+    const [dbBlockedDates, setDbBlockedDates] = useState([]);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
     const [loaded, setLoaded] = useState(false);
@@ -173,6 +180,42 @@ export default function Dashboard() {
     const animPending = useCounter(pendingPayout, 800);
 
     const showToast = useCallback((msg) => { setToastMsg(msg); setTimeout(() => setToastMsg(''), 3000); }, []);
+
+    useEffect(() => {
+        if (session?.user?.verificationStatus && user) {
+            if (session.user.verificationStatus !== user.verificationStatus) {
+                const refreshed = { ...user, verificationStatus: session.user.verificationStatus };
+                setUser(refreshed);
+                localStorage.setItem('archiv-user', JSON.stringify(refreshed));
+            }
+        }
+    }, [session, user]);
+
+    // Real-time API Sync
+    const fetchDashboardData = useCallback(async () => {
+        if (!session) return;
+        try {
+            const resp = await fetch('/api/user/dashboard');
+            const data = await resp.json();
+            if (data.stats) {
+                setBalance(data.stats.totalEarnings);
+                setPendingPayout(data.stats.pendingPayout);
+                setItems(data.items || []);
+                setActivities(data.activity || []);
+                setRequests(data.requests || []);
+                setRentals(data.rentals || []);
+                setOrders(data.orders || []);
+                setReviews(data.reviews || []);
+                if (data.user) setUser(u => ({ ...u, ...data.user }));
+            }
+        } catch (err) {
+            console.error('Failed to sync dashboard API');
+        }
+    }, [session]);
+
+    useEffect(() => {
+        if (session) fetchDashboardData();
+    }, [session, fetchDashboardData]);
 
     // Load persisted data & auth check — per-user sync
     useEffect(() => {
@@ -230,6 +273,16 @@ export default function Dashboard() {
             setPendingPayout(featuredData?.pendingPayout || 0);
         }
 
+        const storedOrders = localStorage.getItem(`archiv-orders-${userSlug}`);
+        if (storedOrders) {
+            setOrders(JSON.parse(storedOrders));
+        } else {
+            setOrders([
+                { id: 101, item: 'The Chiquito Long Bag', lender: '@vintage_luxe', img: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=400', price: 15, status: 'completed', date: '15 Feb', reviewed: false },
+                { id: 102, item: 'Nylon Cleo Bag', lender: '@zara_v', img: 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=400', price: 40, status: 'active', date: '2 Mar', reviewed: false },
+            ]);
+        }
+
         // ── Shared Preferences ──────────────────────────────────────
         const g = localStorage.getItem(`archiv-goal-${userSlug}`);
         if (g) setGoalAmount(Number(g));
@@ -245,11 +298,6 @@ export default function Dashboard() {
     }, [router]);
 
     // Persist — per-user keys (only once userKey is set)
-    useEffect(() => { if (userKey) localStorage.setItem(`archiv-items-${userKey}`, JSON.stringify(items)); }, [items, userKey]);
-    useEffect(() => { if (userKey) localStorage.setItem(`archiv-rentals-${userKey}`, JSON.stringify(rentals)); }, [rentals, userKey]);
-    useEffect(() => { if (userKey) localStorage.setItem(`archiv-requests-${userKey}`, JSON.stringify(requests)); }, [requests, userKey]);
-    useEffect(() => { if (userKey) localStorage.setItem(`archiv-activities-${userKey}`, JSON.stringify(activities)); }, [activities, userKey]);
-    useEffect(() => { if (userKey) localStorage.setItem(`archiv-balance-${userKey}`, String(balance)); }, [balance, userKey]);
     useEffect(() => { if (userKey) localStorage.setItem(`archiv-goal-${userKey}`, String(goalAmount)); }, [goalAmount, userKey]);
     useEffect(() => { if (userKey) localStorage.setItem(`archiv-notifs-${userKey}`, JSON.stringify(notifs)); }, [notifs, userKey]);
     useEffect(() => { if (userKey) localStorage.setItem(`archiv-booked-${userKey}`, JSON.stringify(bookedDays)); }, [bookedDays, userKey]);
@@ -269,17 +317,181 @@ export default function Dashboard() {
         return () => window.removeEventListener('keydown', handler);
     }, []);
 
-    const toggleItem = (id) => { setItems(prev => prev.map(it => it.id === id ? { ...it, status: it.status === 'active' ? 'paused' : 'active' } : it)); const it = items.find(x => x.id === id); showToast(`${it?.name} ${it?.status === 'active' ? 'paused' : 'activated'}`); };
-    const deleteItem = (id) => { const it = items.find(x => x.id === id); setItems(prev => prev.filter(x => x.id !== id)); setShowDeleteConfirm(null); showToast(`${it?.name} removed`); };
-    const handleRequest = (id, action) => { setRequests(prev => prev.map(r => r.id === id ? { ...r, status: action } : r)); showToast(`Request ${action}`); if (action === 'approved') { const req = requests.find(r => r.id === id); if (req) setRentals(prev => [...prev, { id: Date.now(), item: req.item, img: req.img, renter: req.renter, avatar: req.avatar, end: req.dates.split('–')[1]?.trim() || '20 Mar', days: 4, earn: req.earn, status: 'active' }]); } };
-    const markReturned = (id) => { setRentals(prev => prev.map(r => r.id === id ? { ...r, status: 'returned' } : r)); setActivities(prev => [{ id: Date.now(), type: 'return', text: `Item marked as returned`, time: 'Just now', icon: '✅' }, ...prev]); showToast('Item marked as returned'); };
-    const reportDamage = (id) => { setRentals(prev => prev.map(r => r.id === id ? { ...r, status: 'damaged' } : r)); setActivities(prev => [{ id: Date.now(), type: 'dispute', text: `Damage reported: ${damageNote || 'No details'}`, time: 'Just now', icon: '⚠️' }, ...prev]); setShowDamageModal(null); setDamageNote(''); showToast('Damage report filed'); };
+    const toggleItem = async (id) => {
+        const it = items.find(x => x.id === id);
+        if (!it) return;
+        try {
+            const resp = await fetch(`/api/listings/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isActive: it.status !== 'active' })
+            });
+            if (resp.ok) {
+                setItems(prev => prev.map(x => x.id === id ? { ...x, status: x.status === 'active' ? 'paused' : 'active' } : x));
+                showToast(`${it.name} ${it.status === 'active' ? 'paused' : 'activated'}`);
+            }
+        } catch (err) { showToast('Update failed'); }
+    };
+
+    const deleteItem = async (id) => {
+        try {
+            const resp = await fetch(`/api/listings/${id}`, { method: 'DELETE' });
+            if (resp.ok) {
+                setItems(prev => prev.filter(x => x.id !== id));
+                setShowDeleteConfirm(null);
+                showToast('Item removed');
+            }
+        } catch (err) { showToast('Delete failed'); }
+    };
+
+    const handleRequest = async (id, action) => {
+        try {
+            const endpoint = action === 'approved' ? 'approve' : 'decline';
+            const resp = await fetch(`/api/bookings/${id}/${endpoint}`, { method: 'POST' });
+            if (resp.ok) {
+                showToast(`Request ${action}`);
+                fetchDashboardData();
+            } else {
+                const data = await resp.json();
+                showToast(data.error || `Failed to ${action}`);
+            }
+        } catch (err) { showToast('Request failed'); }
+    };
+    const markReturned = async (id) => {
+        try {
+            const resp = await fetch(`/api/bookings/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'COMPLETED' })
+            });
+            if (resp.ok) {
+                setRentals(prev => prev.map(r => r.id === id ? { ...r, status: 'returned' } : r));
+                setActivities(prev => [{ id: Date.now(), type: 'return', text: `Item marked as returned`, time: 'Just now', icon: '✅' }, ...prev]);
+                showToast('Item marked as returned');
+                fetchDashboardData();
+            }
+        } catch (err) { showToast('Update failed'); }
+    };
+
+    const reportDamage = async (id) => {
+        try {
+            const resp = await fetch(`/api/bookings/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'DAMAGED', damageNote })
+            });
+            if (resp.ok) {
+                setRentals(prev => prev.map(r => r.id === id ? { ...r, status: 'damaged' } : r));
+                setActivities(prev => [{ id: Date.now(), type: 'dispute', text: `Damage reported: ${damageNote || 'No details'}`, time: 'Just now', icon: '⚠️' }, ...prev]);
+                setShowDamageModal(null);
+                setDamageNote('');
+                showToast('Damage report filed');
+                fetchDashboardData();
+            }
+        } catch (err) { showToast('Update failed'); }
+    };
     const handleWithdraw = () => { const amt = Math.min(Number(wAmount), balance); if (amt <= 0) return; setBalance(prev => Math.max(0, prev - amt)); setWStep('success'); setActivities(prev => [{ id: Date.now(), type: 'payout', text: `Withdrawal of £${amt} initiated`, time: 'Just now', icon: '💸' }, ...prev]); setTimeout(() => { setShowWithdraw(false); setWStep('form'); }, 3000); };
     const savePaymentMethod = () => { if (cardNumber.length < 4) return; setShowPaymentModal(false); showToast('Payment method updated'); };
-    const toggleCalDay = (d) => setBookedDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
+    const toggleCalDay = async (d) => {
+        if (!selectedListingId) {
+            showToast('Select an item to manage availability');
+            return;
+        }
+
+        const dateStr = new Date(calYear, calMonth, d).toISOString();
+
+        try {
+            const resp = await fetch(`/api/listings/${selectedListingId}/availability`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date: dateStr })
+            });
+            const data = await resp.json();
+
+            if (data.status) {
+                // Update local state for immediate feedback
+                setBookedDays(prev =>
+                    prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]
+                );
+                showToast(`Date ${data.status === 'blocked' ? 'blocked' : 'available'}`);
+
+                // Refresh full list from DB to ensure sync
+                fetchBlockedDates(selectedListingId);
+            } else {
+                showToast('Error syncing availability');
+            }
+        } catch (err) {
+            showToast('Failed to sync with server');
+        }
+    };
+
+    const fetchBlockedDates = async (listingId) => {
+        if (!listingId) return;
+        try {
+            const resp = await fetch(`/api/listings/${listingId}/availability`);
+            const data = await resp.json();
+            if (data.blockedDates) {
+                const days = data.blockedDates
+                    .map(b => new Date(b.date))
+                    .filter(d => d.getMonth() === calMonth && d.getFullYear() === calYear)
+                    .map(d => d.getDate());
+                setBookedDays(days);
+            }
+        } catch (err) {
+            console.error('Fetch availability failed');
+        }
+    };
+
+    useEffect(() => {
+        if (selectedListingId) fetchBlockedDates(selectedListingId);
+    }, [selectedListingId, calMonth, calYear]);
+
+    useEffect(() => {
+        if (items.length > 0 && !selectedListingId) {
+            setSelectedListingId(items[0].id);
+        }
+    }, [items]);
     const toggleNotif = (key) => setNotifs(prev => prev.map(n => n.key === key ? { ...n, on: !n.on } : n));
     const dismissActivity = (id) => setActivities(prev => prev.filter(a => a.id !== id));
-    const updatePrice = (id) => { const val = Number(priceInput); if (val > 0) { setItems(prev => prev.map(it => it.id === id ? { ...it, price: val } : it)); showToast('Price updated'); } setEditingPrice(null); };
+    const updatePrice = async (id) => {
+        const val = Number(priceInput);
+        if (val > 0) {
+            try {
+                const resp = await fetch(`/api/listings/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ dailyRentalPrice: val })
+                });
+                if (resp.ok) {
+                    setItems(prev => prev.map(it => it.id === id ? { ...it, price: val } : it));
+                    showToast('Price updated');
+                }
+            } catch (err) { showToast('Update failed'); }
+        }
+        setEditingPrice(null);
+    };
+    const submitReviewSubmission = () => {
+        const orderId = showReviewModal;
+        const order = orders.find(o => o.id === orderId);
+        if (!order) return;
+
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, reviewed: true } : o));
+
+        const newActivity = {
+            id: Date.now(),
+            type: 'review',
+            text: `You left a ${reviewRating}★ review for ${order.item}`,
+            time: 'Just now',
+            icon: '⭐'
+        };
+        setActivities([newActivity, ...activities]);
+
+        showToast("Review submitted successfully!");
+        setShowReviewModal(null);
+        setReviewComment('');
+        setReviewRating(5);
+    };
+
     const submitReply = (reviewId) => { if (!replyText.trim()) return; setReviewReplies(prev => ({ ...prev, [reviewId]: replyText })); setReplyingTo(null); setReplyText(''); showToast('Reply sent'); };
     const prevMonth = () => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); };
     const nextMonth = () => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); };
@@ -317,6 +529,43 @@ export default function Dashboard() {
     // ── Sections ──────────────────────────────────────────────────────────────
     const Overview = () => (
         <div className="space-y-6">
+            {user?.verificationStatus === 'UNVERIFIED' && (
+                <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="bg-amber-50 border border-amber-100 rounded-[2.5rem] p-8 flex items-center justify-between gap-6 shadow-sm">
+                    <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                            <ShieldCheck size={32} className="text-amber-600" />
+                        </div>
+                        <div>
+                            <div className="text-[10px] font-black text-amber-900 uppercase tracking-[0.3em] mb-2">Security Protocol Required</div>
+                            <h3 className="text-xl font-serif font-black italic text-amber-900 mb-1">Verify Your Identity</h3>
+                            <p className="text-xs text-amber-700/60 font-medium max-w-md">To start lending items and receive payouts, we need to authenticate your original photo ID. This takes less than 2 minutes.</p>
+                        </div>
+                    </div>
+                    <Link href="/dashboard/verification" className="h-14 px-8 rounded-full bg-amber-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-amber-700 transition-all flex items-center gap-3 whitespace-nowrap shadow-xl shadow-amber-600/20 group">
+                        Begin Verification <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                </motion.div>
+            )}
+
+            {user?.verificationStatus === 'UNDER_REVIEW' && (
+                <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="bg-amber-50/50 border border-amber-200/50 rounded-[2.5rem] p-8 flex items-center justify-between gap-6 backdrop-blur-sm">
+                    <div className="flex items-center gap-6">
+                        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+                            <Clock size={32} className="text-amber-600 animate-pulse" />
+                            <div className="absolute inset-0 border-2 border-amber-500/20 rounded-3xl border-t-amber-500 animate-spin" />
+                        </div>
+                        <div>
+                            <div className="text-[10px] font-black text-amber-900/60 uppercase tracking-[0.3em] mb-2">Protocol In Progress</div>
+                            <h3 className="text-xl font-serif font-black italic text-amber-900 mb-1">Verification Under Review</h3>
+                            <p className="text-xs text-amber-700/60 font-medium max-w-md">Our security team is currently authenticating your documents. Your account will be fully authorized within 2-4 hours.</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3 px-6 py-4 rounded-full bg-white/50 border border-amber-200 text-amber-700 font-bold text-[10px] uppercase tracking-widest">
+                        <div className="w-2 h-2 bg-amber-500 rounded-full animate-ping" />
+                        Processing Documents...
+                    </div>
+                </motion.div>
+            )}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Stat label="Total Earned" value={`£${animTotal.toLocaleString()}`} sub="All time" icon={TrendingUp} accent />
                 <Stat label="This Month" value={`£${animMonth.toLocaleString()}`} sub={`${monthPct >= 0 ? '+' : ''}${monthPct}% vs last month`} icon={BarChart2} />
@@ -453,13 +702,24 @@ export default function Dashboard() {
             )}
             {/* Calendar */}
             <div className="bg-white border border-charcoal/5 rounded-3xl p-8">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                        <button onClick={prevMonth} className="w-8 h-8 rounded-lg border border-charcoal/10 flex items-center justify-center hover:bg-charcoal/5 transition-colors"><ChevronLeft size={14} /></button>
-                        <div className="text-sm font-black min-w-[140px] text-center">{MONTH_NAMES[calMonth]} {calYear}</div>
-                        <button onClick={nextMonth} className="w-8 h-8 rounded-lg border border-charcoal/10 flex items-center justify-center hover:bg-charcoal/5 transition-colors"><ChevronRight size={14} /></button>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                    <div>
+                        <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/30 mb-2">Inventory Availability</div>
+                        <select
+                            value={selectedListingId || ''}
+                            onChange={(e) => setSelectedListingId(e.target.value)}
+                            className="bg-transparent border-none text-xl font-serif italic focus:ring-0 cursor-pointer p-0"
+                        >
+                            {items.map(it => (
+                                <option key={it.id} value={it.id}>{it.name}</option>
+                            ))}
+                        </select>
                     </div>
-                    <div className="text-[9px] text-charcoal/40 font-bold">Click days to block/unblock</div>
+                    <div className="flex items-center gap-3 bg-charcoal/[0.03] p-1.5 rounded-xl">
+                        <button onClick={prevMonth} className="w-8 h-8 rounded-lg bg-white border border-charcoal/5 flex items-center justify-center hover:bg-charcoal/5 transition-colors shadow-sm"><ChevronLeft size={14} /></button>
+                        <div className="text-[10px] font-black min-w-[100px] text-center uppercase tracking-widest">{MONTH_NAMES[calMonth]} {calYear}</div>
+                        <button onClick={nextMonth} className="w-8 h-8 rounded-lg bg-white border border-charcoal/5 flex items-center justify-center hover:bg-charcoal/5 transition-colors shadow-sm"><ChevronRight size={14} /></button>
+                    </div>
                 </div>
                 <div className="grid grid-cols-7 gap-2 text-center mb-2">
                     {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => <span key={d} className="text-[9px] font-black text-charcoal/30">{d}</span>)}
@@ -500,6 +760,106 @@ export default function Dashboard() {
                         ))}
                     </div>
                 )}
+            </div>
+        </div>
+    );
+
+    const MyOrders = () => (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/30 mb-1">Your Rental History</div>
+                    <div className="text-2xl font-serif italic">My Orders</div>
+                </div>
+                <div className="flex gap-2">
+                    <div className="bg-white px-4 py-2 rounded-2xl border border-charcoal/5 flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-charcoal/40">1 Active Rental</span>
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-4">
+                    {orders.length === 0 ? (
+                        <div className="bg-white border border-charcoal/5 rounded-[2.5rem] p-12 text-center">
+                            <ShoppingBag size={48} className="mx-auto mb-4 text-charcoal/10" />
+                            <div className="text-xl font-serif italic mb-2">The Archive awaits.</div>
+                            <p className="text-xs text-charcoal/40 font-medium mb-8">You haven't rented any pieces yet. Start your rotating journey today.</p>
+                            <Link href="/collections/all" className="h-12 px-8 rounded-full bg-charcoal text-cream font-black text-[10px] uppercase tracking-widest hover:bg-brilliant-rose transition-all inline-flex items-center gap-2">
+                                Browse Collections <ArrowRight size={14} />
+                            </Link>
+                        </div>
+                    ) : (
+                        orders.map(order => (
+                            <div key={order.id} className="bg-white border border-charcoal/5 rounded-[2.5rem] p-6 hover:shadow-xl hover:shadow-charcoal/5 transition-all group">
+                                <div className="flex gap-6">
+                                    <div className="w-24 h-32 rounded-3xl overflow-hidden flex-shrink-0 border border-charcoal/5">
+                                        <img src={order.img} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div>
+                                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-brilliant-rose mb-1">{order.lender}</div>
+                                                <div className="text-lg font-serif italic leading-tight">{order.item}</div>
+                                            </div>
+                                            <span className={cn(
+                                                "text-[8px] font-black uppercase px-3 py-1 rounded-full border",
+                                                order.status === 'active' ? 'text-blue-600 bg-blue-50 border-blue-100' : 'text-green-600 bg-green-50 border-green-100'
+                                            )}>{order.status}</span>
+                                        </div>
+                                        <div className="flex items-center gap-4 mt-4">
+                                            <div><div className="text-[9px] font-black uppercase tracking-widest text-charcoal/30">Order Date</div><div className="text-xs font-bold">{order.date} 2026</div></div>
+                                            <div className="w-px h-6 bg-charcoal/5" />
+                                            <div><div className="text-[9px] font-black uppercase tracking-widest text-charcoal/30">Total Price</div><div className="text-xs font-bold">£{order.price}</div></div>
+                                            <div className="w-px h-6 bg-charcoal/5" />
+                                            <div><div className="text-[9px] font-black uppercase tracking-widest text-charcoal/30">Return By</div><div className="text-xs font-bold">{order.status === 'active' ? '12 Mar' : 'Completed'}</div></div>
+                                        </div>
+                                        <div className="mt-6 flex items-center gap-3">
+                                            {order.status === 'completed' ? (
+                                                order.reviewed ? (
+                                                    <div className="h-10 px-6 rounded-full bg-green-50 text-green-600 border border-green-100 flex items-center gap-2 text-[9px] font-black uppercase tracking-widest">
+                                                        <Check size={12} strokeWidth={3} /> Reviewed & Verified
+                                                    </div>
+                                                ) : (
+                                                    <button onClick={() => setShowReviewModal(order.id)} className="h-10 px-6 rounded-full bg-charcoal text-white font-black text-[9px] uppercase tracking-widest hover:bg-brilliant-rose transition-all flex items-center gap-2 shadow-lg shadow-charcoal/10">
+                                                        <Star size={12} className="fill-white" /> Leave 5★ Review
+                                                    </button>
+                                                )
+                                            ) : (
+                                                <button onClick={() => showToast('Shipping details available soon')} className="h-10 px-6 rounded-full border border-charcoal/10 text-charcoal/60 font-black text-[9px] uppercase tracking-widest hover:bg-charcoal/5 transition-all">Track Order</button>
+                                            )}
+                                            <Link href={`/product/${order.id}`} className="h-10 px-6 rounded-full border border-charcoal/10 text-charcoal/60 font-black text-[9px] uppercase tracking-widest hover:bg-white hover:border-charcoal/30 transition-all flex items-center gap-2">View Item</Link>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                <div className="space-y-6">
+                    <div className="bg-white border border-charcoal/5 rounded-[2.5rem] p-8">
+                        <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/30 mb-6">Archive Security</div>
+                        <div className="space-y-4">
+                            {[
+                                { icon: ShieldCheck, title: 'Authenticity Guaranteed', desc: 'Every piece is verified by the lender and ARCHIV protocal.' },
+                                { icon: Clock, title: 'Flexible Returns', desc: 'Ship back using our prepaid mailers at any ARCHIV hub.' },
+                                { icon: MessageCircle, title: 'Direct Access', desc: 'Message your lender anytime for styling tips or fit advice.' }
+                            ].map((item, idx) => (
+                                <div key={idx} className="flex gap-4">
+                                    <div className="w-10 h-10 rounded-2xl bg-charcoal/5 flex items-center justify-center flex-shrink-0">
+                                        <item.icon size={16} className="text-charcoal/40" />
+                                    </div>
+                                    <div>
+                                        <div className="text-xs font-black mb-0.5">{item.title}</div>
+                                        <div className="text-[10px] text-charcoal/30 font-bold leading-relaxed">{item.desc}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -605,9 +965,30 @@ export default function Dashboard() {
                         <div className="text-[9px] font-black uppercase tracking-widest text-cream/40 mb-3">Available to Withdraw</div>
                         <div className="text-4xl font-serif italic mb-1">£{balance}</div>
                         <div className="text-[10px] text-cream/30 font-bold mb-6">{balance > 0 ? 'From completed rentals' : 'No balance available'}</div>
-                        <button onClick={() => setShowWithdraw(true)} className="w-full h-11 rounded-full bg-brilliant-rose text-white font-black text-[9px] uppercase tracking-widest hover:bg-white hover:text-charcoal transition-all flex items-center justify-center gap-2">
-                            <ArrowUpRight size={13} /> Withdraw Now
-                        </button>
+                        {['ID_VERIFIED', 'FULLY_VERIFIED'].includes(user?.verificationStatus) ? (
+                            <button onClick={() => setShowWithdraw(true)} className="w-full h-11 rounded-full bg-brilliant-rose text-white font-black text-[9px] uppercase tracking-widest hover:bg-white hover:text-charcoal transition-all flex items-center justify-center gap-2">
+                                <ArrowUpRight size={13} /> Withdraw Now
+                            </button>
+                        ) : (
+                            <div className="space-y-3">
+                                <button disabled className="w-full h-11 rounded-full bg-white/10 text-white/20 font-black text-[9px] uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-2">
+                                    <Lock size={13} /> Withdraw Locked
+                                </button>
+                                <div className={cn("p-3 rounded-2xl border transition-all", user?.verificationStatus === 'UNDER_REVIEW' ? "bg-blue-500/10 border-blue-500/20" : "bg-amber-500/10 border-amber-500/20")}>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        {user?.verificationStatus === 'UNDER_REVIEW' ? <Clock size={12} className="text-blue-400 animate-spin-slow" /> : <ShieldCheck size={12} className="text-amber-400" />}
+                                        <span className={cn("text-[8px] font-black uppercase tracking-widest", user?.verificationStatus === 'UNDER_REVIEW' ? "text-blue-400" : "text-amber-400")}>
+                                            {user?.verificationStatus === 'UNDER_REVIEW' ? 'Authentication In Progress' : 'Verification Required'}
+                                        </span>
+                                    </div>
+                                    <p className="text-[9px] text-white/40 font-bold leading-tight">
+                                        {user?.verificationStatus === 'UNDER_REVIEW'
+                                            ? 'Your documents are being reviewed. Payouts will unlock once authenticated.'
+                                            : 'Complete ID verification to unlock your balance for withdrawal.'}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="bg-white border border-charcoal/5 rounded-3xl p-6 lg:col-span-2">
@@ -735,10 +1116,36 @@ export default function Dashboard() {
             {activities.length === 0 ? (
                 <div className="text-center py-12 text-charcoal/20"><Bell size={32} className="mx-auto mb-3" /><div className="text-sm font-bold">All caught up!</div></div>
             ) : activities.map((a, i) => (
-                <motion.div key={a.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} transition={{ delay: i * 0.06 }} className="flex items-start gap-4 p-4 rounded-2xl hover:bg-charcoal/[0.02] transition-colors border border-transparent hover:border-charcoal/5 group">
-                    <div className="w-10 h-10 rounded-2xl bg-charcoal/5 flex items-center justify-center flex-shrink-0 text-lg">{a.icon}</div>
-                    <div className="flex-1 min-w-0"><div className="text-sm font-bold text-charcoal leading-snug">{a.text}</div><div className="text-[9px] text-charcoal/30 font-bold mt-1">{a.time}</div></div>
-                    <button onClick={() => dismissActivity(a.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-red-50 rounded-lg flex-shrink-0" title="Dismiss"><X size={14} className="text-charcoal/30 hover:text-red-400" /></button>
+                <motion.div
+                    key={a.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 10 }}
+                    transition={{ delay: i * 0.06 }}
+                    className={cn(
+                        "flex items-start gap-4 p-5 rounded-2xl transition-all border group",
+                        a.type === 'message' ? "bg-amber-50 border-amber-100 shadow-sm" : "hover:bg-charcoal/[0.02] border-transparent hover:border-charcoal/5"
+                    )}
+                >
+                    <div className={cn(
+                        "w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 text-lg",
+                        a.type === 'message' ? "bg-amber-500/10" : "bg-charcoal/5"
+                    )}>{a.icon}</div>
+                    <div className="flex-1 min-w-0">
+                        {a.type === 'message' && (
+                            <div className="text-[8px] font-black uppercase tracking-[0.2em] text-amber-600 mb-1">Incoming Message from Concierge</div>
+                        )}
+                        <div className={cn(
+                            "text-sm leading-snug",
+                            a.type === 'message' ? "font-serif italic text-amber-900" : "font-bold text-charcoal"
+                        )}>{a.text}</div>
+                        <div className="text-[9px] text-charcoal/30 font-bold mt-1.5 flex items-center gap-2">
+                            {a.time}
+                            {a.type === 'message' && <span className="w-1 h-1 bg-amber-400 rounded-full" />}
+                            {a.type === 'message' && <span className="text-amber-500/50">ARCHIV Protocol Secure</span>}
+                        </div>
+                    </div>
+                    <button onClick={() => dismissActivity(a.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-charcoal/10 rounded-lg flex-shrink-0" title="Dismiss"><X size={14} className="text-charcoal/30" /></button>
                 </motion.div>
             ))}
         </div>
@@ -817,6 +1224,63 @@ export default function Dashboard() {
                             </button>
                         </div>
                     ))}
+                </div>
+            </div>
+            <div className="bg-white border border-charcoal/5 rounded-3xl p-8">
+                <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/30 mb-6">Trust & Safety</div>
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between p-5 bg-charcoal/5 rounded-2xl border border-charcoal/5">
+                        <div className="flex items-center gap-4">
+                            <div className={cn(
+                                "w-12 h-12 rounded-xl flex items-center justify-center",
+                                ['ID_VERIFIED', 'FULLY_VERIFIED'].includes(user?.verificationStatus) ? 'bg-green-500/10' :
+                                    user?.verificationStatus === 'UNDER_REVIEW' ? 'bg-blue-500/10' : 'bg-charcoal/10'
+                            )}>
+                                {user?.verificationStatus === 'UNDER_REVIEW' ? (
+                                    <Clock size={20} className="text-blue-500 animate-spin-slow" />
+                                ) : (
+                                    <ShieldCheck size={20} className={['ID_VERIFIED', 'FULLY_VERIFIED'].includes(user?.verificationStatus) ? 'text-green-500' : 'text-charcoal/40'} />
+                                )}
+                            </div>
+                            <div>
+                                <div className="text-xs font-black">Identity Verification</div>
+                                <div className="text-[10px] text-charcoal/30 font-bold">
+                                    Status: {
+                                        user?.verificationStatus === 'ID_VERIFIED' ? 'Verified' :
+                                            user?.verificationStatus === 'FULLY_VERIFIED' ? 'Fully Verified' :
+                                                user?.verificationStatus === 'UNDER_REVIEW' ? 'Under Review' : 'Unverified'
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        {['ID_VERIFIED', 'FULLY_VERIFIED'].includes(user?.verificationStatus) ? (
+                            <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1.5 rounded-full border border-green-100">
+                                <Check size={12} strokeWidth={3} />
+                                <span className="text-[8px] font-black uppercase tracking-widest">Authenticated</span>
+                            </div>
+                        ) : user?.verificationStatus === 'UNDER_REVIEW' ? (
+                            <div className="flex items-center gap-2 text-blue-600 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">
+                                <Clock size={12} className="animate-spin-slow" />
+                                <span className="text-[8px] font-black uppercase tracking-widest">Processing</span>
+                            </div>
+                        ) : (
+                            <Link href="/dashboard/verification" className="h-10 px-6 rounded-full bg-charcoal text-white font-black text-[9px] uppercase tracking-widest hover:bg-brilliant-rose transition-all flex items-center gap-2">
+                                Verify Now
+                            </Link>
+                        )}
+                    </div>
+
+                    <div className="space-y-4 pt-2">
+                        <div className="text-[9px] font-black uppercase tracking-widest text-charcoal/30">Connect Socials</div>
+                        <div className="grid grid-cols-2 gap-3">
+                            {['Instagram', 'TikTok'].map(platform => (
+                                <button key={platform} className="h-12 border border-charcoal/5 rounded-2xl flex items-center justify-center gap-2 hover:bg-charcoal/5 transition-all group">
+                                    <div className="w-6 h-6 rounded-lg bg-charcoal text-white flex items-center justify-center text-[10px] font-black transition-colors group-hover:bg-brilliant-rose">{platform[0]}</div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-charcoal/40 group-hover:text-charcoal transition-colors">Link {platform}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
             <div className="bg-white border border-charcoal/5 rounded-3xl p-8">
@@ -1049,7 +1513,7 @@ export default function Dashboard() {
         </div>
     );
 
-    const SECTIONS = { overview: <Overview />, analytics: <Analytics />, bookings: <Bookings />, items: <Items />, financials: <Financials />, reputation: <Reputation />, activity: <Activity />, goals: <Goals />, faq: <FAQ />, settings: <SettingsPanel /> };
+    const SECTIONS = { overview: <Overview />, orders: <MyOrders />, analytics: <Analytics />, bookings: <Bookings />, items: <Items />, financials: <Financials />, reputation: <Reputation />, activity: <Activity />, goals: <Goals />, faq: <FAQ />, settings: <SettingsPanel /> };
     const activeNav = NAV.find(n => n.id === tab);
 
     // Auth guard — show nothing until user loads
@@ -1082,8 +1546,11 @@ export default function Dashboard() {
                 {sidebarOpen && (
                     <div className="p-5 border-b border-white/10">
                         <div className="flex items-center gap-3">
-                            <img src={user.avatar} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-brilliant-rose" />
-                            <div className="min-w-0"><div className="text-xs font-black truncate">{user.name}</div><div className="text-[9px] text-cream/40 font-bold">Archive Elite</div></div>
+                            <div className="relative">
+                                <img src={user.avatar} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-brilliant-rose" />
+                                {user.verificationStatus === 'ID_VERIFIED' && <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-sage rounded-full flex items-center justify-center border-2 border-charcoal shadow-sm"><Check size={8} className="text-white" /></div>}
+                            </div>
+                            <div className="min-w-0"><div className="text-xs font-black truncate flex items-center gap-1.5">{user.name} {user.verificationStatus === 'ID_VERIFIED' && <ShieldCheck size={10} className="text-sage" />}</div><div className="text-[9px] text-cream/40 font-bold">Archive Elite</div></div>
                         </div>
                     </div>
                 )}
@@ -1097,9 +1564,18 @@ export default function Dashboard() {
                 </nav>
                 {sidebarOpen && (
                     <div className="p-4 border-t border-white/10">
-                        <button onClick={() => setShowWithdraw(true)} className="w-full h-11 rounded-full bg-brilliant-rose text-white font-black text-[9px] uppercase tracking-widest hover:bg-white hover:text-charcoal transition-all flex items-center justify-center gap-2">
-                            <ArrowUpRight size={13} /> Withdraw £{balance}
-                        </button>
+                        {['ID_VERIFIED', 'FULLY_VERIFIED'].includes(user?.verificationStatus) ? (
+                            <button onClick={() => setShowWithdraw(true)} className="w-full h-11 rounded-full bg-brilliant-rose text-white font-black text-[9px] uppercase tracking-widest hover:bg-white hover:text-charcoal transition-all flex items-center justify-center gap-2">
+                                <ArrowUpRight size={13} /> Withdraw £{balance}
+                            </button>
+                        ) : (
+                            <button disabled className="w-full h-11 rounded-full bg-white/5 text-white/20 font-black text-[9px] uppercase tracking-widest cursor-not-allowed flex items-center justify-center gap-2 border border-white/5">
+                                <div className="flex items-center gap-2">
+                                    {user?.verificationStatus === 'UNDER_REVIEW' ? <Clock size={13} className="animate-spin-slow" /> : <Lock size={13} />}
+                                    £{balance} {user?.verificationStatus === 'UNDER_REVIEW' ? 'Pending' : 'Locked'}
+                                </div>
+                            </button>
+                        )}
                     </div>
                 )}
             </aside>
@@ -1261,6 +1737,73 @@ export default function Dashboard() {
                             <button onClick={() => reportDamage(showDamageModal)} disabled={!damageNote.trim()} className={cn('w-full h-14 rounded-full font-black text-[10px] uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-2', !damageNote.trim() ? 'bg-charcoal/20 text-charcoal/40 cursor-not-allowed' : 'bg-red-500 text-white hover:bg-red-600')}>
                                 <AlertTriangle size={14} /> Submit Damage Report
                             </button>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Review Modal */}
+            <AnimatePresence>
+                {showReviewModal && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowReviewModal(null)} className="absolute inset-0 bg-charcoal/40 backdrop-blur-md" />
+                        <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative bg-[#F5F4EF] w-full max-w-lg rounded-[3.5rem] shadow-2xl p-12 border border-white">
+                            <div className="text-center mb-8">
+                                <div className="w-16 h-16 rounded-full bg-amber-50 mx-auto flex items-center justify-center mb-4">
+                                    <Star size={32} className="text-amber-400 fill-amber-400" />
+                                </div>
+                                <h3 className="text-3xl font-serif italic mb-2">Share the Love.</h3>
+                                <p className="text-xs text-charcoal/40 font-medium">How was your experience with {orders.find(o => o.id === showReviewModal)?.lender}?</p>
+                            </div>
+
+                            <div className="space-y-8 mb-10">
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-charcoal/30 block mb-6 text-center">Your Rating</label>
+                                    <div className="flex justify-center gap-3">
+                                        {[1, 2, 3, 4, 5].map(star => (
+                                            <button
+                                                key={star}
+                                                onClick={() => setReviewRating(star)}
+                                                className="group relative"
+                                            >
+                                                <Star
+                                                    size={32}
+                                                    className={cn(
+                                                        "transition-all duration-300",
+                                                        star <= reviewRating ? "text-amber-400 fill-amber-400 scale-110" : "text-charcoal/10 hover:text-amber-200"
+                                                    )}
+                                                />
+                                                {star === reviewRating && (
+                                                    <motion.div layoutId="star-glow" className="absolute inset-0 bg-amber-400/20 blur-xl rounded-full" />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="text-center mt-4 h-4">
+                                        <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest transition-all">
+                                            {reviewRating === 5 ? 'Exceptional Service' : reviewRating === 4 ? 'Great Experience' : reviewRating === 3 ? 'Good' : reviewRating === 2 ? 'Disappointing' : 'Poor'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="text-[10px] font-black uppercase tracking-[0.2em] text-charcoal/30 block mb-3">Your Feedback</label>
+                                    <textarea
+                                        value={reviewComment}
+                                        onChange={e => setReviewComment(e.target.value)}
+                                        placeholder="Tell the community about the item condition, fit, and lender communication..."
+                                        rows={4}
+                                        className="w-full bg-white border border-charcoal/5 rounded-[2rem] p-6 text-sm font-medium resize-none focus:outline-none focus:ring-4 focus:ring-brilliant-rose/5 focus:border-brilliant-rose transition-all placeholder:text-charcoal/20"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button onClick={() => setShowReviewModal(null)} className="flex-1 h-14 rounded-full border border-charcoal/10 text-charcoal font-black text-[10px] uppercase tracking-widest hover:bg-charcoal/5 transition-all">Cancel</button>
+                                <button onClick={submitReviewSubmission} disabled={!reviewComment.trim()} className={cn('flex-[2] h-14 rounded-full font-black text-[10px] uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-2', !reviewComment.trim() ? 'bg-charcoal/20 text-charcoal/40 cursor-not-allowed' : 'bg-charcoal text-white hover:bg-brilliant-rose')}>
+                                    Post Review to Archive
+                                </button>
+                            </div>
                         </motion.div>
                     </div>
                 )}

@@ -72,7 +72,7 @@ export const Navbar = ({ onSearch }) => {
                 <div className="flex-1 flex justify-center">
                     <Link href="/">
                         <h1 className="text-3xl font-serif italic text-white tracking-tight cursor-pointer">
-                            By Archiv
+                            Archiv
                         </h1>
                     </Link>
                 </div>
@@ -351,23 +351,38 @@ export const CookiePopup = ({ onAccept }) => {
 
 export const SearchModal = ({ onClose }) => {
     const [query, setQuery] = useState('');
-    const ALL_ITEMS = [
-        { id: 1, designer: 'JACQUEMUS', name: 'Le Chiquito Long', price: 15, img: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?q=80&w=200' },
-        { id: 2, designer: 'SAINT LAURENT', name: 'Silk Slip Dress', price: 85, img: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?q=80&w=200' },
-        { id: 3, designer: 'ACNE STUDIOS', name: 'Shell Jacket', price: 120, img: 'https://images.unsplash.com/photo-1520975661595-6453be3f7070?q=80&w=200' },
-        { id: 4, designer: 'REFORMATION', name: 'Floral Midi', price: 25, img: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?q=80&w=200' },
-        { id: 5, designer: 'PRADA', name: 'Nylon Cleo Bag', price: 40, img: 'https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=200' },
-    ];
-    const POPULAR = ['Bridal Dresses', 'Bottega Bags', 'Zimmermann', 'Black Tie', 'Jacquemus'];
-    const results = query.length > 1
-        ? ALL_ITEMS.filter(i => i.designer.toLowerCase().includes(query.toLowerCase()) || i.name.toLowerCase().includes(query.toLowerCase()))
-        : [];
+    const [results, setResults] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const POPULAR = ['Jacquemus', 'Bag', 'Dress', 'Chanel', 'Acne Studios'];
+
+    useEffect(() => {
+        const timer = setTimeout(async () => {
+            if (query.trim().length > 1) {
+                setLoading(true);
+                try {
+                    const res = await fetch(`/api/listings/search?q=${encodeURIComponent(query)}`);
+                    const data = await res.json();
+                    if (data.success) {
+                        setResults(data.listings);
+                    }
+                } catch (err) {
+                    console.error("Search fetch error:", err);
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                setResults([]);
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [query]);
 
     return (
         <div className="fixed inset-0 z-[150] flex flex-col">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="relative bg-white shadow-2xl px-6 lg:px-12 py-8 max-h-[80vh] overflow-y-auto">
-                <div className="max-w-3xl mx-auto">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="relative bg-white shadow-2xl px-6 lg:px-12 py-8 max-h-[85vh] overflow-y-auto">
+                <div className="max-w-4xl mx-auto">
                     <div className="flex items-center gap-4 border-b-2 border-black pb-4 mb-8">
                         <Search size={24} strokeWidth={2} className="text-gray-400 flex-shrink-0" />
                         <input
@@ -376,40 +391,84 @@ export const SearchModal = ({ onClose }) => {
                             value={query}
                             onChange={(e) => setQuery(e.target.value)}
                             placeholder="Search designers, items, occasions…"
-                            className="flex-1 text-xl font-medium outline-none placeholder:text-gray-300"
+                            className="flex-1 text-2xl font-serif italic outline-none placeholder:text-gray-300"
                         />
-                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                        {loading && <div className="w-5 h-5 border-2 border-black/10 border-t-black rounded-full animate-spin" />}
+                        <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors ml-2">
                             <X size={20} />
                         </button>
                     </div>
 
                     {results.length > 0 ? (
-                        <div className="space-y-4">
-                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">{results.length} Results</div>
-                            {results.map(item => (
-                                <Link key={item.id} href={`/product/${item.id}`} onClick={onClose} className="flex items-center gap-5 group hover:bg-gray-50 p-3 -mx-3 rounded-xl transition-colors">
-                                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                                        <img src={item.img} className="w-full h-full object-cover" alt={item.name} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-400">{item.designer}</div>
-                                        <div className="font-bold text-sm mt-0.5 group-hover:text-brilliant-rose transition-colors">{item.name}</div>
-                                        <div className="text-xs text-gray-400 font-medium mt-0.5">From £{item.price}/day</div>
-                                    </div>
-                                    <ArrowRight size={16} className="text-gray-300 group-hover:text-brilliant-rose transition-colors" />
-                                </Link>
-                            ))}
-                        </div>
-                    ) : (
-                        <div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4">Popular Searches</div>
-                            <div className="flex flex-wrap gap-3">
-                                {POPULAR.map(term => (
-                                    <button key={term} onClick={() => setQuery(term)} className="px-5 h-10 border border-gray-200 rounded-full text-sm font-bold hover:border-black hover:bg-black hover:text-white transition-all">
-                                        {term}
-                                    </button>
+                        <div className="grid md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2">
+                                    <Globe size={12} /> Live Inventory Results ({results.length})
+                                </div>
+                                {results.map(item => (
+                                    <Link key={item.id} href={`/product/${item.id}`} onClick={onClose} className="flex items-center gap-5 group hover:bg-gray-50 p-3 -mx-3 rounded-2xl transition-all">
+                                        <div className="w-20 h-24 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100 border border-gray-100">
+                                            <img src={item.img} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={item.name} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <div className="text-[10px] font-black uppercase tracking-widest text-brilliant-rose">{item.brand}</div>
+                                            <div className="font-serif italic text-lg mt-0.5 group-hover:translate-x-1 transition-transform">{item.brand} {item.category}</div>
+                                            <div className="flex items-center gap-3 mt-2">
+                                                <div className="text-xs font-black">£{item.price}/day</div>
+                                                <div className="flex items-center gap-1 text-[9px] font-bold text-gray-400">
+                                                    <Star size={10} className="text-amber-400 fill-amber-400" /> {item.rating} • {item.lenderName}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <ArrowRight size={18} className="text-gray-200 group-hover:text-brilliant-rose transition-colors" />
+                                    </Link>
                                 ))}
                             </div>
+
+                            <div className="hidden md:block">
+                                <div className="bg-gray-50 rounded-[2.5rem] p-8 border border-gray-100">
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6">Archive Insights</div>
+                                    <div className="flex items-center gap-4 mb-8">
+                                        <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center shadow-sm">
+                                            <TrendingUp size={20} className="text-brilliant-rose" />
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-bold">Trending this week</div>
+                                            <div className="text-[10px] text-gray-400 font-medium">Bags are seeing 40% more search volume</div>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {['Signature Archive Bag', 'Archive Leather Coat', 'Signature Jacket'].map(t => (
+                                            <div key={t} className="flex items-center justify-between text-[11px] font-bold py-2 border-b border-gray-200/50 last:border-0 hover:text-brilliant-rose cursor-pointer transition-colors">
+                                                <span>{t}</span>
+                                                <ArrowRight size={12} opacity={0.3} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="py-12">
+                            {query.length > 1 && !loading ? (
+                                <div className="text-center py-10">
+                                    <div className="text-2xl font-serif italic mb-2 text-gray-400">No results found for &ldquo;{query}&rdquo;</div>
+                                    <p className="text-xs font-medium text-gray-300 tracking-wide uppercase">Try a different designer or category</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2">
+                                        <CheckCircle2 size={12} /> Seasonal Hot Picks
+                                    </div>
+                                    <div className="flex flex-wrap gap-3">
+                                        {POPULAR.map(term => (
+                                            <button key={term} onClick={() => setQuery(term)} className="px-8 h-12 border border-gray-200 rounded-full text-[11px] font-black uppercase tracking-widest hover:border-black hover:bg-black hover:text-white transition-all shadow-sm">
+                                                {term}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>

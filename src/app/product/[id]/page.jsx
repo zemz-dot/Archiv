@@ -153,6 +153,7 @@ export default function ProductDetail() {
     const [userCredits, setUserCredits] = useState(540); // Demo Credits Balance
     const [isProcessing, setIsProcessing] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [blockedDates, setBlockedDates] = useState([]);
 
     // Card Form State
     const [cardDetails, setCardDetails] = useState({ number: '', expiry: '', cvc: '', name: '' });
@@ -163,12 +164,28 @@ export default function ProductDetail() {
     // Image Selection State
     const [activeImage, setActiveImage] = useState(product.images?.[0] || product.img);
 
-    // Update active image when product changes
+    // Update active image and fetch availability when product changes
     useEffect(() => {
         setActiveImage(product.images?.[0] || product.img);
-    }, [product]);
+
+        // Fetch real blocked dates from DB
+        const fetchAvailability = async () => {
+            try {
+                const resp = await fetch(`/api/listings/${productId}/availability`);
+                const data = await resp.json();
+                if (data.blockedDates) {
+                    setBlockedDates(data.blockedDates.map(b => new Date(b.date).getDate()));
+                }
+            } catch (err) {
+                console.error('Failed to fetch availability');
+            }
+        };
+        fetchAvailability();
+    }, [product, productId]);
 
     const handleDateClick = (day) => {
+        if (blockedDates.includes(day)) return; // Prevent selection of blocked dates
+
         if (!startDate) {
             // First click: Start selection and auto-suggest 3-day minimum
             setStartDate(day);
@@ -227,23 +244,46 @@ export default function ProductDetail() {
         }, 1500);
     };
 
-    const handleConfirmBooking = () => {
+    const handleConfirmBooking = async () => {
         if (!paymentMethod) return;
 
         setIsProcessing(true);
         setCheckoutStep('processing');
 
-        // Simulate payment processing
-        setTimeout(() => {
-            setIsProcessing(false);
-            setIsSuccess(true);
-            setCheckoutStep('success');
+        try {
+            const resp = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    listingId: productId,
+                    startDate: new Date(2026, 7, startDate).toISOString(), // Mocking August 2026 for now as per UI
+                    endDate: new Date(2026, 7, endDate).toISOString(),
+                    totalPrice: product.price * duration
+                })
+            });
 
-            // If using credits, deduct from balance
-            if (paymentMethod === 'credits') {
-                setUserCredits(prev => prev - (product.price * duration));
+            const data = await resp.json();
+
+            if (data.success) {
+                setIsProcessing(false);
+                setIsSuccess(true);
+                setCheckoutStep('success');
+
+                // If using credits, deduct from balance (frontend only sync)
+                if (paymentMethod === 'credits') {
+                    setUserCredits(prev => prev - (product.price * duration));
+                }
+            } else {
+                alert(data.error || 'Failed to secure acquisition');
+                setIsProcessing(false);
+                setCheckoutStep('selection');
             }
-        }, 3000);
+        } catch (err) {
+            console.error('Booking Error:', err);
+            setIsProcessing(false);
+            setCheckoutStep('selection');
+            alert('Synchronizing Ledger failed. Check connection.');
+        }
     };
 
     const selectedDatesLabel = startDate && endDate
@@ -1087,19 +1127,28 @@ export default function ProductDetail() {
 
                                         const isFirstDay = startDate && day === startDate;
                                         const isLastDay = endDate && day === endDate;
+                                        const isBlocked = blockedDates.includes(day);
 
                                         return (
                                             <button
                                                 key={i}
+                                                disabled={isBlocked}
                                                 onClick={() => handleDateClick(day)}
-                                                onMouseEnter={() => setHoveredDay(day)}
+                                                onMouseEnter={() => !isBlocked && setHoveredDay(day)}
                                                 onMouseLeave={() => setHoveredDay(null)}
                                                 className={cn(
                                                     "h-10 text-[11px] font-black transition-all relative flex items-center justify-center",
+                                                    isBlocked ? "text-charcoal/10 cursor-not-allowed" : "cursor-pointer",
                                                     isSelected ? "z-20 scale-100" : "z-10",
-                                                    (isMiddle || isHoverPreview) && "bg-white/60 text-charcoal"
+                                                    (isMiddle || isHoverPreview) && !isBlocked && "bg-white/60 text-charcoal",
+                                                    isBlocked && "opacity-50"
                                                 )}
                                             >
+                                                {isBlocked && (
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                                                        <div className="w-6 h-px bg-charcoal rotate-45" />
+                                                    </div>
+                                                )}
                                                 <span className={cn(
                                                     "w-8 h-8 flex items-center justify-center transition-all duration-500 rounded-full",
                                                     isSelected ? "bg-charcoal text-cream shadow-lg" :
