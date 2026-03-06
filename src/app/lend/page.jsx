@@ -20,6 +20,7 @@ import {
     Globe,
     Zap
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { Navbar, Footer, AnnouncementBar, AppPopup, CookiePopup, SearchModal } from '../../components/layout/SharedComponents';
 import Link from 'next/link';
 import { clsx } from 'clsx';
