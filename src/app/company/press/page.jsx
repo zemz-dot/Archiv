@@ -1,9 +1,16 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, CheckCircle2, Globe, Heart, Smartphone, Play, Download, ExternalLink } from 'lucide-react';
 import { Navbar, Footer, AppPopup, AnnouncementBar } from '../../../components/layout/SharedComponents';
+import { clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+function cn(...inputs) {
+    return twMerge(clsx(inputs));
+}
 
 export default function PressMediaPage() {
     const [showAppPopup, setShowAppPopup] = useState(false);
